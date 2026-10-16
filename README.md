@@ -5,8 +5,8 @@ A small, end-to-end analytics system:
 - **Browser SDK** (`@acme/browser-sdk`): tracks page views and custom events, with batching, retries, an offline queue and delivery when the page closes.
 - **Server SDK** (`@acme/server-sdk`): sends trusted business events (for example `order_created`) from a backend.
 - **Ingestion + storage** (`apps/analytics`): a validated, idempotent HTTP API backed by SQLite.
-- **Dashboard** (`apps/analytics` → `/dashboard`): page views, unique visitors, sessions, orders and revenue, a traffic chart, event trends and popular pages, filtered by date range.
-- **Demo app** (`apps/restaurant`): a small restaurant site that uses both SDKs. You browse the menu, add dishes, log in, place an order and see it on the dashboard.
+- **Dashboard** (`apps/analytics` → `/dashboard`): page views, unique visitors, sessions, orders and revenue with change vs the previous period, a traffic chart, an ordering funnel, a recent-activity feed, event trends and popular pages. It is filtered by date range and refreshes every 10 s while Live is on.
+- **Demo app** (`apps/restaurant`): a small restaurant site that uses both SDKs. You browse the menu, add dishes, log in, place an order and see it on the dashboard. A small **Analytics events** panel in the corner shows each event as the SDK tracks it.
 
 ```
 Restaurant site (localhost:3001)                   Analytics app (localhost:3000)
@@ -60,7 +60,7 @@ init({
   publicKey: 'pk_demo_123',
   endpoint: 'http://localhost:3000',
   // optional: autoPageViews (true), flushInterval (5000 ms), maxBatchSize (20),
-  //           debug (false), respectDoNotTrack (true)
+  //           debug (false), respectDoNotTrack (true), onEvent (callback per queued event)
 });
 
 track('add_to_cart', { itemId: 'margherita', price: 12.5 });

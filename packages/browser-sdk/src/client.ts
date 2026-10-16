@@ -13,6 +13,8 @@ export interface BrowserConfig {
   debug?: boolean;
   respectDoNotTrack?: boolean;
   fetch?: typeof fetch;
+  /** Called with every queued event (e.g. for a debug panel). Errors in it are ignored. */
+  onEvent?: (event: AnalyticsEvent) => void;
 }
 
 type Props = Record<string, unknown>;
@@ -20,7 +22,7 @@ const MAX_REQUEST_EVENTS = 50; // server limit
 const MAX_REQUEST_BYTES = 60_000; // stay under the server's 64 KB body limit
 
 export class AnalyticsClient {
-  private readonly cfg: Required<BrowserConfig>;
+  private readonly cfg: Required<Omit<BrowserConfig, 'onEvent'>> & Pick<BrowserConfig, 'onEvent'>;
   private readonly identity = new Identity();
   private readonly queue = new PersistentQueue('acme_queue');
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -147,6 +149,11 @@ export class AnalyticsClient {
     };
     this.queue.push(event);
     this.log('queued', event);
+    try {
+      this.cfg.onEvent?.(event);
+    } catch {
+      /* a broken listener must not stop tracking */
+    }
     if (this.queue.size >= this.cfg.maxBatchSize) void this.flush();
   }
 

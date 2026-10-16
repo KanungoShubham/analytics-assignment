@@ -149,3 +149,62 @@ export function getEventTrends(db: DB, projectId: string, range: DateRange): Eve
   for (const r of rows) byDate.get(r.date)![r.name] = r.count;
   return { names, series };
 }
+
+/** The same number of days immediately before `range`, for "vs previous period" deltas. */
+export function previousRange(range: DateRange): DateRange {
+  const days = listDays(range).length;
+  const to = new Date(dayStart(range.from) - DAY_MS);
+  const from = new Date(to.getTime() - (days - 1) * DAY_MS);
+  return { from: toDateStr(from), to: toDateStr(to) };
+}
+
+export interface FunnelStep {
+  key: 'visited' | 'add_to_cart' | 'checkout_started' | 'order_created';
+  label: string;
+  visitors: number;
+}
+
+/** Distinct visitors (anonymous_id) reaching each step of the ordering journey in the range. */
+export function getFunnel(db: DB, projectId: string, range: DateRange): FunnelStep[] {
+  const row = db
+    .prepare(
+      `SELECT
+         COUNT(DISTINCT CASE WHEN type = 'page_view' THEN anonymous_id END) AS visited,
+         COUNT(DISTINCT CASE WHEN name = 'add_to_cart' THEN anonymous_id END) AS add_to_cart,
+         COUNT(DISTINCT CASE WHEN name = 'checkout_started' THEN anonymous_id END) AS checkout_started,
+         COUNT(DISTINCT CASE WHEN name = 'order_created' AND source = 'server' THEN anonymous_id END) AS order_created
+       FROM events WHERE ${WHERE}`,
+    )
+    .get(bounds(projectId, range)) as Record<FunnelStep['key'], number>;
+  return [
+    { key: 'visited', label: 'Visited', visitors: row.visited },
+    { key: 'add_to_cart', label: 'Added to cart', visitors: row.add_to_cart },
+    { key: 'checkout_started', label: 'Started checkout', visitors: row.checkout_started },
+    { key: 'order_created', label: 'Ordered', visitors: row.order_created },
+  ];
+}
+
+export interface RecentEvent {
+  id: number;
+  type: string;
+  name: string;
+  source: string;
+  url: string | null;
+  anonymousId: string | null;
+  userId: string | null;
+  properties: Record<string, unknown>;
+  occurredAt: string;
+}
+
+/** Newest events first: the "who did what" activity feed. */
+export function getRecentEvents(db: DB, projectId: string, range: DateRange, limit = 20): RecentEvent[] {
+  const rows = db
+    .prepare(
+      `SELECT id, type, name, source, url, anonymous_id AS anonymousId, user_id AS userId, properties, occurred_at AS occurredAt
+       FROM events WHERE ${WHERE}
+       ORDER BY occurred_at DESC, id DESC
+       LIMIT @limit`,
+    )
+    .all({ ...bounds(projectId, range), limit }) as (Omit<RecentEvent, 'properties'> & { properties: string })[];
+  return rows.map((r) => ({ ...r, properties: JSON.parse(r.properties) as Record<string, unknown> }));
+}

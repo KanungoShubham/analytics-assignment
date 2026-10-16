@@ -181,6 +181,24 @@ describe('AnalyticsClient', () => {
   });
 });
 
+describe('onEvent hook', () => {
+  it('reports each queued event and survives a throwing callback', async () => {
+    const seen: string[] = [];
+    const f = ok();
+    const c = makeClient(f, {
+      onEvent: (e) => {
+        seen.push(e.name);
+        throw new Error('ui bug');
+      },
+    });
+    c.track('add_to_cart');
+    c.identify('user_1');
+    expect(seen).toEqual(['add_to_cart', 'identify']);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(sent(f).events).toHaveLength(2);
+  });
+});
+
 describe('storage and size edge cases', () => {
   it('keeps user and session when only localStorage writes fail (quota exceeded)', async () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {

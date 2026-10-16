@@ -1,0 +1,10 @@
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+apps/analytics/data/
+*.db
+*.db-*
+.env
+coverage/
+.superpowers/

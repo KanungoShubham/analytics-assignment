@@ -74,8 +74,9 @@ export function getOverview(db: DB, projectId: string, range: DateRange): Overvi
          COUNT(DISTINCT CASE WHEN source = 'browser' THEN anonymous_id END) AS uniqueVisitors,
          COUNT(DISTINCT session_id) AS sessions,
          COALESCE(SUM(type = 'track'), 0) AS events,
-         COALESCE(SUM(name = 'order_created'), 0) AS orders,
-         COALESCE(SUM(CASE WHEN name = 'order_created' THEN json_extract(properties, '$.total') END), 0) AS revenue
+         -- Business KPIs only count trusted server events (secret key), never browser events.
+         COALESCE(SUM(name = 'order_created' AND source = 'server'), 0) AS orders,
+         COALESCE(SUM(CASE WHEN name = 'order_created' AND source = 'server' THEN json_extract(properties, '$.total') END), 0) AS revenue
        FROM events WHERE ${WHERE}`,
     )
     .get(bounds(projectId, range)) as Overview;

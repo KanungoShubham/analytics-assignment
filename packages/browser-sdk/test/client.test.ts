@@ -181,6 +181,33 @@ describe('AnalyticsClient', () => {
   });
 });
 
+describe('storage and size edge cases', () => {
+  it('keeps user and session when only localStorage writes fail (quota exceeded)', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    const f = ok();
+    const c = makeClient(f);
+    c.identify('user_42');
+    c.track('a');
+    c.track('b');
+    await vi.advanceTimersByTimeAsync(100);
+    const [, a, b] = sent(f).events;
+    expect(a.user_id).toBe('user_42');
+    expect(b.session_id).toBe(a.session_id);
+  });
+
+  it('limits each request by UTF-8 bytes, not characters', async () => {
+    const f = ok();
+    const c = makeClient(f, { maxBatchSize: 20 });
+    const text = '漢'.repeat(2500); // 2,500 chars but 7,500 bytes
+    for (let i = 0; i < 20; i++) c.track('note', { text });
+    await vi.advanceTimersByTimeAsync(0);
+    const body = (f.mock.calls[0][1] as RequestInit).body as string;
+    expect(new TextEncoder().encode(body).length).toBeLessThanOrEqual(64 * 1024);
+  });
+});
+
 describe('public API', () => {
   it('never throws, even before init or when fetch throws synchronously', async () => {
     expect(() => sdk.track('before_init')).not.toThrow();

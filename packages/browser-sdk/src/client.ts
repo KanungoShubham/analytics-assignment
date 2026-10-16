@@ -150,12 +150,13 @@ export class AnalyticsClient {
     if (this.queue.size >= this.cfg.maxBatchSize) void this.flush();
   }
 
-  /** Oldest events first, at most 50 and ~60 KB per request. */
+  /** Oldest events first, at most 50 events and ~60 KB (UTF-8 bytes, like the server limit) per request. */
   private takeBatch(): AnalyticsEvent[] {
     const batch: AnalyticsEvent[] = [];
+    const encoder = new TextEncoder();
     let bytes = 0;
     for (const event of this.queue.peek(MAX_REQUEST_EVENTS)) {
-      const size = JSON.stringify(event).length;
+      const size = encoder.encode(JSON.stringify(event)).length;
       if (batch.length > 0 && bytes + size > MAX_REQUEST_BYTES) break;
       batch.push(event);
       bytes += size;

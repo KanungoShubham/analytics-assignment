@@ -96,3 +96,17 @@ describe('parseRange', () => {
     expect(() => p('from=2024-01-01&to=2026-10-01')).toThrow(InvalidRangeError);
   });
 });
+
+describe('business KPIs only trust server events', () => {
+  it('ignores order_created sent from the browser with the public key', () => {
+    const fresh = createTestDb();
+    const order = (source: 'browser' | 'server', total: number) =>
+      ingestEvents(fresh, {
+        projectId: 'demo', source, now: NOW,
+        events: [{ event_id: randomUUID(), type: 'track', name: 'order_created', anonymous_id: 'anon_x', timestamp: '2026-10-16T10:00:00.000Z', properties: { total } }],
+      });
+    order('server', 20);
+    order('browser', 1_000_000);
+    expect(getOverview(fresh, 'demo', range('2026-10-16', '2026-10-16'))).toMatchObject({ orders: 1, revenue: 20 });
+  });
+});

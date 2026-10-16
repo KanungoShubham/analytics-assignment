@@ -175,7 +175,8 @@ Server events carry the `anonymous_id` that the browser sends with the order, so
 - **Public vs secret keys.** The public key only allows writing *browser* events from allowed origins. Business events need the secret key, which is stored as a SHA-256 hash and never sent to the browser.
 - **Origin allow-list** on browser ingestion. Note that the public key is visible by design and non-browser clients can fake the `Origin` header, so this protects against other *websites*, not scripts.
 - **Validation and size limits** on everything: Zod schema, 50 events and 64 KB per request, 8 KB of properties per event, field length limits.
-- **Rate limiting**: 120 requests/min per (key, IP) on ingestion, and 10 login attempts/min per IP.
+- **Rate limiting**: 120 requests/min per (key, IP) on ingestion, and 10 login attempts/min per IP. The IP comes from `X-Forwarded-For`, so this is only reliable behind a proxy that sets that header (see Limitations).
+- **Business KPIs trust only server events.** Orders and revenue count `order_created` events only when they came from the server (secret key), so the public browser key can't fake revenue.
 - **Privacy**: IP addresses are never stored. The SDK respects Do Not Track and supports `optOut()`.
 - **Dashboard**: password compared in constant time, HMAC-signed HttpOnly cookie that expires after 8 hours, every stats route checks the session.
 - **SQL**: only parameterised statements.
@@ -213,7 +214,8 @@ Server events carry the `anonymous_id` that the browser sends with the order, so
 
 - **SQLite allows only one writer at a time.** For real traffic, move ingestion behind a queue and store events in Postgres or ClickHouse.
 - **Totals are calculated when the dashboard loads.** At scale, add daily summary tables.
-- **The rate limiter lives in memory**, per process. Use Redis when running several servers.
+- **The rate limiter lives in memory**, per process. Use Redis when running several servers. Without a trusted proxy in front, a client can send a different `X-Forwarded-For` each time and avoid the per-IP limit. In production, use the IP that the trusted proxy provides.
+- **No CSRF tokens on dashboard login/logout.** `SameSite=Lax` cookies cover the common cases.
 - **The server SDK has no durable outbox.** If every retry fails, the event is lost. Production would use an outbox table or a queue.
 - **Multiple tabs share one `localStorage` queue without locking.** Two tabs can overwrite each other's queue, which can lose a few events. Duplicates are already handled on the server.
 - **Unique visitors aren't merged across devices**, and `identify()` doesn't retroactively merge anonymous history in the counts.

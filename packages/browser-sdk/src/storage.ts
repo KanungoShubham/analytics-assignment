@@ -1,20 +1,23 @@
 /**
  * localStorage with an in-memory fallback (Safari private mode, disabled storage, quota errors).
+ * A key whose write failed is served from memory, so reads always see the latest value.
  * Never throws.
  */
 const memory = new Map<string, string>();
 
 export const storage = {
   get(key: string): string | null {
+    if (memory.has(key)) return memory.get(key)!;
     try {
       return window.localStorage.getItem(key);
     } catch {
-      return memory.get(key) ?? null;
+      return null;
     }
   },
   set(key: string, value: string): void {
     try {
       window.localStorage.setItem(key, value);
+      memory.delete(key);
     } catch {
       memory.set(key, value);
     }

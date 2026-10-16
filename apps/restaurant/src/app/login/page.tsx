@@ -8,20 +8,25 @@ export default function LoginPage() {
   const { login } = useUser();
   const [name, setName] = useState('');
   return (
-    <main>
-      <h1>Log in</h1>
-      <p className="note">Demo login: just enter a name. This calls <code>identify()</code> so later events are linked to you.</p>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          login(name);
-          router.push('/menu');
-        }}
-        style={{ display: 'flex', gap: 8 }}
-      >
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required maxLength={50} />
-        <button className="btn" type="submit">Log in</button>
-      </form>
+    <main className="page">
+      <div className="wrap">
+        <form
+          className="login-card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            login(name);
+            router.push('/menu');
+          }}
+        >
+          <h1 style={{ fontSize: '2rem' }}>Log in</h1>
+          <p>This is a demo login: any name works. Your earlier visits on this device are linked to your account.</p>
+          <div className="field">
+            <label htmlFor="login-name">Your name</label>
+            <input id="login-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={50} autoComplete="given-name" autoFocus />
+          </div>
+          <button className="btn btn-primary" type="submit">Log in</button>
+        </form>
+      </div>
     </main>
   );
 }

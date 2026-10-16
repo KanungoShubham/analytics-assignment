@@ -49,9 +49,16 @@ export function useCart() {
     write(current);
   }, []);
 
+  const decrement = useCallback((itemId: string) => {
+    const next = read()
+      .map((l) => (l.itemId === itemId ? { ...l, quantity: l.quantity - 1 } : l))
+      .filter((l) => l.quantity > 0);
+    write(next);
+  }, []);
+
   const remove = useCallback((itemId: string) => write(read().filter((l) => l.itemId !== itemId)), []);
   const clear = useCallback(() => write([]), []);
   const count = lines.reduce((n, l) => n + l.quantity, 0);
 
-  return { lines, count, add, remove, clear };
+  return { lines, count, add, decrement, remove, clear };
 }

@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getAnonymousId, track } from '@acme/browser-sdk';
-import { findMenuItem } from '../../lib/menu';
+import { findMenuItem, formatPrice } from '../../lib/menu';
 import { useCart } from '../../lib/cart';
 import { useUser } from '../../lib/user';
 
@@ -15,7 +16,8 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const tracked = useRef(false);
 
-  const total = lines.reduce((sum, l) => sum + (findMenuItem(l.itemId)?.price ?? 0) * l.quantity, 0);
+  const rows = lines.map((l) => ({ ...l, item: findMenuItem(l.itemId) })).filter((r) => r.item);
+  const total = rows.reduce((sum, r) => sum + r.item!.price * r.quantity, 0);
 
   useEffect(() => {
     if (user && !name) setName(user.name);
@@ -40,7 +42,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({ items: lines, customer: name, anonymousId: getAnonymousId(), userId: user?.id ?? null }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'Could not place order');
+      if (!res.ok) throw new Error(body.error ?? 'The order could not be placed. Try again.');
       clear();
       router.push(`/order/${body.orderId}`);
     } catch (err) {
@@ -49,28 +51,50 @@ export default function CheckoutPage() {
     }
   }
 
-  if (lines.length === 0) {
+  if (rows.length === 0) {
     return (
-      <main>
-        <h1>Checkout</h1>
-        <p className="note">Your cart is empty.</p>
+      <main className="page">
+        <div className="wrap empty">
+          <h1>Nothing to check out yet</h1>
+          <p>Your cart is empty. Pick a few dishes first.</p>
+          <Link className="btn btn-primary" href="/menu">Browse the menu</Link>
+        </div>
       </main>
     );
   }
 
   return (
-    <main>
-      <h1>Checkout</h1>
-      <form onSubmit={placeOrder} style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 360 }}>
-        <label>
-          Name for the order
-          <br />
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
-        </label>
-        <div className="total" style={{ textAlign: 'left' }}>Total: ${total.toFixed(2)}</div>
-        {error && <div className="error">{error}</div>}
-        <button className="btn" type="submit" disabled={submitting}>{submitting ? 'Placing order…' : 'Place order'}</button>
-      </form>
+    <main className="page">
+      <div className="wrap">
+        <div className="page-head">
+          <h1>Checkout</h1>
+          <p>Pay when you pick up. We only need a name for the order.</p>
+        </div>
+        <div className="two-col">
+          <form onSubmit={placeOrder} style={{ maxWidth: 460 }}>
+            <div className="field">
+              <label htmlFor="order-name">Name for the order</label>
+              <input id="order-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={60} autoComplete="name" />
+              <span className="hint">We call this name when your food is ready.</span>
+            </div>
+            {error && <div className="error-box" role="alert">{error}</div>}
+            <button className="btn btn-primary" type="submit" disabled={submitting}>
+              {submitting ? 'Placing order…' : `Place order · ${formatPrice(total)}`}
+            </button>
+          </form>
+
+          <aside className="summary">
+            <h2>Your order</h2>
+            {rows.map((r) => (
+              <div className="summary-row" key={r.itemId}>
+                <span>{r.quantity} × {r.item!.name}</span>
+                <span>{formatPrice(r.item!.price * r.quantity)}</span>
+              </div>
+            ))}
+            <div className="summary-row total"><span>Total</span><span>{formatPrice(total)}</span></div>
+          </aside>
+        </div>
+      </div>
     </main>
   );
 }

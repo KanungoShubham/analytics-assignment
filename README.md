@@ -5,8 +5,8 @@ A small, end-to-end analytics system:
 - **Browser SDK** (`@acme/browser-sdk`): tracks page views and custom events, with batching, retries, an offline queue and delivery when the page closes.
 - **Server SDK** (`@acme/server-sdk`): sends trusted business events (for example `order_created`) from a backend.
 - **Ingestion + storage** (`apps/analytics`): a validated, idempotent HTTP API backed by SQLite.
-- **Dashboard** (`apps/analytics` → `/dashboard`): page views, unique visitors, sessions, orders and revenue with change vs the previous period, a traffic chart, an ordering funnel, a recent-activity feed, event trends and popular pages. It is filtered by date range and refreshes every 10 s while Live is on.
-- **Demo app** (`apps/restaurant`): a small restaurant site that uses both SDKs. You browse the menu, add dishes, log in, place an order and see it on the dashboard. A small **Analytics events** panel in the corner shows each event as the SDK tracks it.
+- **Dashboard** (`apps/analytics` → `/dashboard`): page views, unique visitors, sessions, orders and revenue with change vs the previous period. It also has **Live now** (who is on the site, their current page and last action, plus each visitor's full journey), **Popular dishes** (added to cart / people / ordered), a traffic chart, an ordering funnel, a recent-activity feed, event trends and popular pages. Everything is filtered by date range and refreshes every 10 s while Live is on.
+- **Demo app** (`apps/restaurant`): a small restaurant site that uses both SDKs. You browse the menu, add dishes, log in, place an order and see it on the dashboard. Customers never see analytics. Returning visitors get a **"Welcome back — your usual"** row built from their own past behaviour.
 
 ```
 Restaurant site (localhost:3001)                   Analytics app (localhost:3000)
@@ -96,6 +96,7 @@ In Next.js, call it inside `after(() => analytics.track(...))` so it runs after 
 | `GET /api/stats/timeseries?from&to` | dashboard cookie | Page views and unique visitors per day (days with no data are filled with zeros) |
 | `GET /api/stats/top-pages?from&to&limit` | dashboard cookie | Most viewed pages |
 | `GET /api/stats/events?from&to` | dashboard cookie | Custom event counts per day |
+| `GET /api/profile?anonymousId&userId` | `Authorization: Bearer <secret key>` | A returning visitor's visits and favourite dishes (used for "your usual") |
 | `POST /api/login`, `POST /api/logout` | password | Dashboard session |
 
 Ingestion request body: `{ "events": [ ...1 to 50 events ] }`, at most 64 KB.
@@ -153,6 +154,7 @@ Server events carry the `anonymous_id` that the browser sends with the order, so
 - **Echo `Origin` on `/api/collect`.** The endpoint only accepts writes, so this is safe. It lets the SDK read a `401` or `403` and drop the batch instead of retrying a CORS error forever. The allowed-origin check itself happens on the server.
 - **Retry rules.** Network errors, `429` and `5xx` are retried with exponential backoff (1 s, 2 s, 4 s … up to 30 s, plus jitter). Any other `4xx` drops the batch, because resending can't succeed.
 - **Server tracking runs after the response** (`after()`). A slow or failed analytics call never delays or breaks an order.
+- **Personalisation goes through the server.** The menu asks the restaurant server (`/api/favorites`), which calls `GET /api/profile` with the secret key. The browser never holds a key that can read behaviour. A 1.5 s timeout means the menu never waits on analytics.
 - **Prices are calculated on the server** from the menu. Prices sent by the client are ignored.
 - **Stateless dashboard session.** The cookie is an HMAC-signed expiry time (HttpOnly, SameSite=Lax), so no session table is needed.
 - **Timestamps.** The client's time is used, unless it is more than 24 h in the future or more than 7 days in the past, in which case the server's receive time is used. All reporting uses UTC days.

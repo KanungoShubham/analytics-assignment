@@ -55,6 +55,12 @@ function bounds(projectId: string, range: DateRange) {
   };
 }
 
+/** `{ start, end }` ISO bounds for a day range, for queries outside this module. */
+export function dayRangeBounds(range: DateRange): { start: string; end: string } {
+  const { start, end } = bounds('', range);
+  return { start, end };
+}
+
 const WHERE = 'project_id = @projectId AND occurred_at >= @start AND occurred_at < @end';
 
 export interface Overview {

@@ -7,7 +7,10 @@ import {
   getEventTrends, getFunnel, getOverview, getRecentEvents, getTimeseries, getTopPages,
   parseRange, presetRanges, previousRange, type DateRange,
 } from '../../lib/stats';
+import { getLiveVisitors, getPopularDishes, getVisitorJourney } from '../../lib/behaviour';
 import { ActivityFeed } from '../../components/ActivityFeed';
+import { LiveVisitors } from '../../components/LiveVisitors';
+import { PopularDishes } from '../../components/PopularDishes';
 import { EventsChart } from '../../components/EventsChart';
 import { Funnel } from '../../components/Funnel';
 import { KpiStrip, type Kpi } from '../../components/KpiStrip';
@@ -63,6 +66,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const recent = getRecentEvents(db, projectId, range, 25);
   const topPages = getTopPages(db, projectId, range, 8);
   const trends = getEventTrends(db, projectId, range);
+  const dishes = getPopularDishes(db, projectId, range, 7);
+  const now = Date.now();
+  const live = getLiveVisitors(db, projectId, new Date(now), 5).map((v) => ({ ...v, journey: getVisitorJourney(db, projectId, v.anonymousId, 30) }));
 
   const kpis: Kpi[] = [
     { label: 'Page views', value: overview.pageViews, previous: before.pageViews, icon: ICONS.views, tint: '#e3f2f0' },
@@ -128,6 +134,27 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
           <section className="panel">
             <div className="panel-head">
               <div>
+                <h2><span className="live-badge" aria-hidden />Live now · {live.length} on the site</h2>
+                <p>Visitors active in the last 5 minutes. Click one to see every step they took.</p>
+              </div>
+            </div>
+            <LiveVisitors visitors={live} now={now} />
+          </section>
+          <section className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>Popular dishes</h2>
+                <p>Added to cart and ordered, in this range</p>
+              </div>
+            </div>
+            <PopularDishes dishes={dishes} />
+          </section>
+        </div>
+
+        <div className="grid">
+          <section className="panel">
+            <div className="panel-head">
+              <div>
                 <h2>Traffic</h2>
                 <p>Page views and unique visitors per day</p>
               </div>
@@ -166,7 +193,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
                 <p>Latest events, newest first</p>
               </div>
             </div>
-            <ActivityFeed events={recent} now={Date.now()} />
+            <ActivityFeed events={recent} now={now} />
           </section>
         </div>
 

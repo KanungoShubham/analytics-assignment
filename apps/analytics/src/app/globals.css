@@ -149,3 +149,30 @@ a { color: var(--teal); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
+
+/* ---------- Live visitors ---------- */
+.live-badge { display: inline-block; width: 9px; height: 9px; border-radius: 999px; background: #10b981; margin-right: 8px; vertical-align: 1px; animation: pulse 2s ease-out infinite; }
+.live-list { list-style: none; margin: 0; padding: 0; max-height: 360px; overflow-y: auto; }
+.live-list > li { border-bottom: 1px solid var(--line); }
+.live-list > li:last-child { border-bottom: 0; }
+.live-list summary { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 4px; cursor: pointer; list-style: none; border-radius: 8px; }
+.live-list summary::-webkit-details-marker { display: none; }
+.live-list summary:hover { background: var(--bg); }
+.live-list details[open] summary { background: var(--teal-soft); }
+.avatar { width: 34px; height: 34px; border-radius: 999px; background: #e6eaed; color: var(--ink-2); display: grid; place-items: center; font-size: 0.78rem; font-weight: 600; }
+.avatar.known { background: var(--teal); color: #fff; }
+.live-who { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.live-action { flex-basis: 100%; color: var(--muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill { font-size: 0.7rem; font-weight: 600; border-radius: 999px; padding: 0 7px; background: #eef1f3; color: var(--muted); }
+.pill.known { background: var(--teal-soft); color: var(--teal); }
+.live-page { font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 0.82rem; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; }
+.live-seen { color: var(--muted); font-size: 0.8rem; min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
+.journey { list-style: none; margin: 4px 0 12px 20px; padding: 4px 0 0 18px; border-left: 2px solid var(--line); }
+.journey li { display: grid; grid-template-columns: 10px 64px 1fr; gap: 8px; align-items: start; padding: 4px 0; font-size: 0.86rem; }
+.journey time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.8rem; padding-top: 1px; }
+.dishes .dish-name { font-family: var(--font); font-size: 0.9rem; }
+.dishes td.ordered { color: var(--amber); font-weight: 600; }
+@media (max-width: 620px) {
+  .live-list summary { grid-template-columns: 34px minmax(0, 1fr) auto; }
+  .live-page { display: none; }
+}

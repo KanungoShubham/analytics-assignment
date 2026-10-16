@@ -9,7 +9,6 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const order = getOrder(id);
   if (!order) notFound();
-  const dashboard = process.env.NEXT_PUBLIC_ANALYTICS_ENDPOINT ?? 'http://localhost:3000';
 
   return (
     <main className="page">
@@ -32,8 +31,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </div>
 
         <div className="confirm-actions">
-          <Link className="btn btn-ghost" href="/menu">Order something else</Link>
-          <a className="btn btn-primary" href={`${dashboard}/dashboard`} target="_blank" rel="noreferrer">See this order on the dashboard</a>
+          <Link className="btn btn-primary" href="/menu">Order something else</Link>
         </div>
       </div>
     </main>

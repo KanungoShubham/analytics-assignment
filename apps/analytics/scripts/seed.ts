@@ -50,7 +50,7 @@ for (let d = 29; d >= 0; d--) {
       if (Math.random() < 0.6) {
         browser.push({ ...base, event_id: randomUUID(), type: 'track', name: 'checkout_started', url: '/checkout', timestamp: at() });
         if (Math.random() < 0.7) {
-          server.push({ event_id: randomUUID(), type: 'track', name: 'order_created', anonymous_id: anon, timestamp: at(), properties: { orderId: `ord_seed_${randomUUID().slice(0, 8)}`, total: dish.price, itemCount: 1 } });
+          server.push({ event_id: randomUUID(), type: 'track', name: 'order_created', anonymous_id: anon, timestamp: at(), properties: { orderId: `ord_seed_${randomUUID().slice(0, 8)}`, total: dish.price, itemCount: 1, items: [dish.id] } });
         }
       }
     }

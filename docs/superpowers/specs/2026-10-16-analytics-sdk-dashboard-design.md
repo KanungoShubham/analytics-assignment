@@ -252,3 +252,13 @@ npm run seed    # optional: 30 days of sample data
 - Dashboard auth is a shared password.
 - No bot filtering, geo, or device breakdowns.
 - Identity merge is not applied retroactively to visitor counts.
+
+## 17. Changes during implementation
+
+- **No tsup build step**: SDK packages are consumed as TypeScript source via npm workspaces and `transpilePackages`; publishing would add a build (README limitation).
+- **`menu_item_viewed` dropped** from the demo; tracked events are `page_view`, `add_to_cart`, `remove_from_cart`, `checkout_started`, `identify`, `order_created`.
+- **Server-side `order_created` is deferred with Next.js `after()`** so analytics latency/outages never affect the order response.
+- **Unique visitors** = distinct `anonymous_id` of *browser* events in range; `url` stores the path only.
+- **Dashboard reads stats directly** in a server component (the `/api/stats/*` endpoints remain for external use); date range is a plain GET form.
+- **Browser SDK start-up**: only leftovers from a previous page load trigger an immediate flush; new events (including the first page view) wait for the normal batch.
+- Login attempts are rate limited (10/min/IP).

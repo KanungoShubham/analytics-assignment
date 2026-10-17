@@ -21,23 +21,78 @@ Restaurant site (localhost:3001)                   Analytics app (localhost:3000
 └────────────────────────────┘                     └──────────────────────────────┘
 ```
 
-## Quick start
+## Requirements
 
-Requirements: **Node.js 20+** and npm. You don't need to install a database, PHP or Docker.
+| What | Version | Notes |
+|---|---|---|
+| **Node.js** | 20 or newer (tested on 22) | Check with `node -v`. Download from https://nodejs.org |
+| **npm** | 10+ (ships with Node) | The repo uses npm workspaces, so use npm rather than yarn/pnpm |
+| **Git** | any | To clone the repo |
+| Free ports | **3000** and **3001** | Analytics app and restaurant demo |
+
+You **don't** need a database server, PHP, Docker or any cloud account. SQLite is embedded through `better-sqlite3`, which downloads a prebuilt binary for your OS during `npm install`.
+
+> If `npm install` fails while building `better-sqlite3` (rare; happens when no prebuilt binary exists for your Node version), install a C++ toolchain and retry: on Windows the "Desktop development with C++" workload from Visual Studio Build Tools plus Python 3, on macOS `xcode-select --install`, on Linux `build-essential` and `python3`. Using an LTS Node version (20 or 22) avoids this.
+
+## Installation
 
 ```bash
-npm install          # installs every workspace (SQLite is bundled via better-sqlite3)
-npm run seed         # optional: 30 days of sample data so the charts aren't empty
+# 1. Get the code
+git clone https://github.com/KanungoShubham/analytics-assignment.git
+cd analytics-assignment
+
+# 2. Install every workspace (SDKs, analytics app, restaurant app) in one go
+npm install
+
+# 3. (Optional) load 30 days of sample data so the charts aren't empty
+npm run seed
+
+# 4. Start both apps
 npm run dev          # analytics on :3000, restaurant on :3001
-npm test             # all test suites
 ```
 
-- Restaurant demo: http://localhost:3001
-- Dashboard: http://localhost:3000. The password is **`admin`**.
+Then open:
 
-Everything works without `.env` files because the demo defaults are built in. To change keys or the password, copy `apps/analytics/.env.example` to `apps/analytics/.env` and `apps/restaurant/.env.example` to `apps/restaurant/.env`.
+- **Restaurant demo**: http://localhost:3001
+- **Analytics dashboard**: http://localhost:3000 (password **`admin`**)
+
+Other useful commands:
+
+```bash
+npm test             # run every test suite (Vitest)
+npm run typecheck    # type-check every workspace
+npm run seed -- --reset   # wipe the database and re-seed
+```
+
+### Configuration (optional)
+
+Everything works without `.env` files because the demo defaults are built in. To change keys, the dashboard password or the endpoint, copy the examples and edit them:
+
+```bash
+cp apps/analytics/.env.example  apps/analytics/.env
+cp apps/restaurant/.env.example apps/restaurant/.env
+```
+
+| Variable | App | Default | Purpose |
+|---|---|---|---|
+| `ANALYTICS_DB_PATH` | analytics | `data/analytics.db` | SQLite file location |
+| `DEMO_PUBLIC_KEY` / `DEMO_SECRET_KEY` | analytics | `pk_demo_123` / `sk_demo_456` | Keys for the demo project |
+| `DEMO_ALLOWED_ORIGINS` | analytics | `http://localhost:3001` | Origins allowed to send browser events |
+| `DASHBOARD_PASSWORD` | analytics | `admin` | Dashboard login |
+| `SESSION_SECRET` | analytics | dev value | Signs the dashboard cookie; set a long random string outside dev |
+| `NEXT_PUBLIC_ANALYTICS_ENDPOINT` / `ANALYTICS_ENDPOINT` | restaurant | `http://localhost:3000` | Where the SDKs send events |
+| `NEXT_PUBLIC_ANALYTICS_PUBLIC_KEY` / `ANALYTICS_SECRET_KEY` | restaurant | demo keys | Must match the analytics app |
 
 The database is created automatically at `apps/analytics/data/analytics.db`. Delete that file to start over, or run `npm run seed -- --reset`.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `EADDRINUSE` on 3000/3001 | Another process uses the port. Stop it, or change `-p` in `apps/*/package.json` (and update the endpoint/allowed-origin variables to match). |
+| Dashboard is empty | Pick **Today** in the date range, wait ~5 s (browser events are batched) or run `npm run seed`. |
+| Events rejected with `403` | The restaurant's origin isn't in `DEMO_ALLOWED_ORIGINS`. |
+| `better-sqlite3` build error | See the note under Requirements. |
 
 ## Demo walkthrough
 
@@ -223,7 +278,7 @@ Server events carry the `anonymous_id` that the browser sends with the order, so
 - **Unique visitors aren't merged across devices**, and `identify()` doesn't retroactively merge anonymous history in the counts.
 - **The dashboard uses one shared password**, with no user accounts or roles. The cookie doesn't set `Secure`, because local development uses http.
 - **Demo orders are kept in memory** and disappear on restart. The `userId` on an order comes from the client; a real app would take it from the server session.
-- **No bot filtering, geography, device or referrer reports**, and no live updates (reload the dashboard).
+- **No bot filtering, geography, device or referrer reports.** Live updates use 10 s polling rather than a push channel (WebSockets/SSE).
 - **The SDK packages are used as TypeScript source** inside the monorepo. Publishing to npm would need a build step (for example `tsup`).
 
 ## Project structure
@@ -238,9 +293,8 @@ apps/
                  src/app (api/collect, api/server-events, api/stats/[kind], login, dashboard)
                  scripts/seed.ts, test/
   restaurant/    src/lib (menu, orders, create-order, cart, user), src/app (pages + api/orders), test/
-docs/superpowers/ design spec and implementation plan
 ```
 
 ## Note on AI assistance
 
-This project was built with help from an AI coding assistant (Claude Code). I reviewed and tested all of it, and I can explain and change any part. The design spec and implementation plan in `docs/` record the decisions and the reasons for them.
+This project was built with help from an AI coding assistant (Claude Code). I reviewed and tested all of it, and I can explain and change any part. The decisions and the reasons for them are recorded in this README.
